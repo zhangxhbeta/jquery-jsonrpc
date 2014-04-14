@@ -84,9 +84,9 @@
         this._validateRequestCallbacks(options.success, options.error);
 
         // Perform the actual request
-        this._doRequest(JSON.stringify(this._requestDataObj(method, options.params, options.id)), options);
+        return this._doRequest(JSON.stringify(this._requestDataObj(method, options.params, options.id)), options);
 
-        return true;
+        // return true;
       },
 
       /*
@@ -131,7 +131,7 @@
           data.push(this._requestDataObj(request.method, request.params, request.id));
         }
 
-        this._doRequest(JSON.stringify(data), options);
+        return this._doRequest(JSON.stringify(data), options);
       },
 
       // Validate a params hash
@@ -178,7 +178,7 @@
       // Internal method used for generic ajax requests
       _doRequest: function(data, options) {
         var _that = this;
-        $.ajax({
+        return $.ajax({
           type: 'POST',
           async: false !== options.async,
           dataType: 'json',
