@@ -1,5 +1,24 @@
 # JSON RPC 2.0 jQuery Plugin
 
+分支说明：
+在做Ember的时候，碰到一个问题，Ember要求model方法返回一个promise，但是这个库用的是回调方式所以我修改了他的实现为返回promise
+
+现在可以这么写，当然还是感谢原作者：
+
+    var promise = Ember.$.jsonRPC.request('method.name', {
+      params: params
+    }).then(
+      function(result) {
+        // Do something with the result here
+        // It comes back as an RPC 2.0 compatible response object
+      },
+      function(result) {
+        // Result is an RPC 2.0 compatible response object
+      }
+    );
+
+    return promise;
+
 A [JSON RPC 2.0](http://groups.google.com/group/json-rpc/web/json-rpc-2-0) compatible client library and jQuery (1.4, 1.5, and 1.6 compatible) plugin.
 
 ## First, a quick compatibility note
