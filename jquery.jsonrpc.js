@@ -26,7 +26,7 @@
         this._validateConfigParams(params);
         this.endPoint = params.endPoint;
         this.namespace = params.namespace;
-        this.cache = params.cache !== undefined ? cache : true;
+        this.cache = params.cache !== undefined ? params.cache : true;
         return this;
       },
 
@@ -81,7 +81,6 @@
         // Validate method arguments
         this._validateRequestMethod(method);
         this._validateRequestParams(options.params);
-        this._validateRequestCallbacks(options.success, options.error);
 
         // Perform the actual request
         return this._doRequest(JSON.stringify(this._requestDataObj(method, options.params, options.id)), options);
@@ -120,7 +119,6 @@
             req.id = i + 1;
           }
         });
-        this._validateRequestCallbacks(options.success, options.error);
 
         var data = [],
             request;
@@ -166,19 +164,12 @@
         return true;
       },
 
-      _validateRequestCallbacks: function(success, error) {
-        // Make sure callbacks are either empty or a function
-        if(success !== undefined &&
-           typeof(success) !== 'function') throw("Invalid success callback supplied for jsonRPC request");
-        if(error !== undefined &&
-         typeof(error) !== 'function') throw("Invalid error callback supplied for jsonRPC request");
-        return true;
-      },
-
       // Internal method used for generic ajax requests
       _doRequest: function(data, options) {
+        var deferred = $.Deferred();
+
         var _that = this;
-        return $.ajax({
+        $.ajax({
           type: 'POST',
           async: false !== options.async,
           dataType: 'json',
@@ -186,14 +177,18 @@
           url: this._requestUrl((options.endPoint || options.url), options.cache),
           data: data,
           cache: options.cache,
-          processData: false,
-          error: function(json) {
-            _that._requestError.call(_that, json, options.error);
-          },
-          success: function(json) {
-            _that._requestSuccess.call(_that, json, options.success, options.error);
-          }
+          processData: false
         })
+
+        .done(function(json) {
+          _that._requestSuccess.call(_that, json, deferred);
+        })
+
+        .fail(function(json) {
+          _that._requestError.call(_that, json, deferred);
+        });
+
+        return deferred.promise();
       },
 
       // Determines the appropriate request URL to call for a request
@@ -224,38 +219,35 @@
       },
 
       // Handles calling of error callback function
-      _requestError: function(json, error) {
-        if (error !== undefined && typeof(error) === 'function') {
-          if(typeof(json.responseText) === 'string') {
-            try {
-              error(eval ( '(' + json.responseText + ')' ));
-            }
-            catch(e) {
-              error(this._response());
-            }
+      _requestError: function(json, deferred) {
+        if(typeof(json.responseText) === 'string') {
+          try {
+            deferred.reject(eval ( '(' + json.responseText + ')' ));
           }
-          else {
-            error(this._response());
+          catch(e) {
+            deferred.reject(this._response());
           }
+        } else {
+          deferred.reject(this._response());
         }
+
       },
 
       // Handles calling of RPC success, calls error callback
       // if the response contains an error
       // TODO: Handle error checking for batch requests
-      _requestSuccess: function(json, success, error) {
+      _requestSuccess: function(json, deferred) {
         var response = this._response(json);
 
         // If we've encountered an error in the response, trigger the error callback if it exists
-        if(response.error && typeof(error) === 'function') {
-          error(response);
+        if(response.error) {
+          deferred.reject(response);
           return;
         }
 
         // Otherwise, successful request, run the success request if it exists
-        if(typeof(success) === 'function') {
-          success(response);
-        }
+        deferred.resolve(response);
+
       },
 
       // Returns a generic RPC 2.0 compatible response object
