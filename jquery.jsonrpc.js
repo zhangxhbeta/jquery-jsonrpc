@@ -11,6 +11,9 @@
       // Default namespace for methods
       namespace: null,
 
+      // 错误处理
+      errorHandler: null,
+
       /*
        * Provides the RPC client with an optional default endpoint and namespace
        *
@@ -26,6 +29,7 @@
         this._validateConfigParams(params);
         this.endPoint = params.endPoint;
         this.namespace = params.namespace;
+        this.errorHandler = params.errorHandler;
         this.cache = params.cache !== undefined ? params.cache : true;
         return this;
       },
@@ -241,6 +245,13 @@
 
         // If we've encountered an error in the response, trigger the error callback if it exists
         if(response.error) {
+
+          // 处理错误情况
+          if (this.errorHandler !== null && this.errorHandler(response.error)) {
+              // 已处理，不需要应用再处理
+              return;
+          }
+
           deferred.reject(response);
           return;
         }
